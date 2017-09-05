@@ -48,18 +48,21 @@ class Tree:
 class Parser:
     alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
     number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    op = ['~', '+', '*', '->']
     def __init__(self, string, lineNo):
         self.string = string.replace(" ", "")
         self.tree = Tree()
         self.lineNo = lineNo
         self.outQueue = Queue()
         self.opStack = Stack()
+        self.stack = Stack()
 
     def syntaxError(self, targetSymbol):
         print("Syntax Error at line " + str(self.lineNo) + ": Please check around your symbol '" + targetSymbol + "'")
 
     def infixToPostfix(self):
         symbol = "" # This is for tokenizing symbols
+        implying = False
         for letter in self.string:
             if letter in Parser.number:
                 if symbol == "":
@@ -74,10 +77,31 @@ class Parser:
                 continue
             
             if symbol != "":
+                if symbol == "out" or symbol[:2] == "pin":
+                    print("Input symbols should not be 'out' or 'pin...'")
+                    return False
                 self.outQueue.enqueue(symbol)
                 symbol = ""
+            
+            if letter == '>':
+                if implying:
+                    while self.opStack.content != [] and self.opStack.content[-1] in ['~', '*', '+', '->']:
+                        self.outQueue.enqueue(self.opStack.pop())
+                    self.opStack.push('->')
+                    implying = False
+                else:
+                    print("Syntax Error at line " + str(self.lineNo) + ": Symbol '>' is incorrectly used")
+                    return False
 
-            if letter == '+':
+            elif implying:
+                print("Syntax Error at line " + str(self.lineNo) + ": Symbol '-' is incorrectly used")
+                return False
+
+            elif letter == '-':
+                implying = True
+                continue
+
+            elif letter == '+':
                 while self.opStack.content != [] and self.opStack.content[-1] in ['~', '*', '+']:
                     self.outQueue.enqueue(self.opStack.pop())
                 self.opStack.push('+')
@@ -117,10 +141,63 @@ class Parser:
             return False
         return True
 
+    def nandify(self):
+        self.stack.content = []
+        for token in self.outQueue.content:
+            if token == '~':
+                operand2 = self.stack.pop()
+                if operand2[-1] == '~':
+                    operand2.pop(-1)
+                else:
+                    operand2.append('~')
+                self.stack.push(operand2)
 
-parsethis = Parser("aa3+b31*c4(*d+e)", 1)
-parsethis.infixToPostfix()
+            elif token == '*':
+                operand2 = self.stack.pop()
+                operand1 = self.stack.pop()
+                operand2.append('#')
+                operand2.append('~')
+                self.stack.push(operand1 + operand2)
+
+            elif token == '+':
+                operand2 = self.stack.pop()
+                operand1 = self.stack.pop()
+                if operand1[-1] == '~':
+                    operand1.pop(-1)
+                else:
+                    operand1.append('~')
+                if operand2[-1] == '~':
+                    operand2.pop(-1)
+                else:
+                    operand2.append('~')
+                operand2.append('#')
+                self.stack.push(operand1 + operand2)
+
+            elif token == '->':
+                operand2 = self.stack.pop()
+                operand1 = self.stack.pop()
+                if operand2[-1] == '~':
+                    operand2.pop(-1)
+                else:
+                    operand2.append('~')
+                operand2.append('#')
+                self.stack.push(operand1 + operand2)
+
+            else:
+                temp = []
+                temp.append(token)
+                self.stack.push(temp)
+
+    def parse(self):
+        if self.infixToPostfix():
+            self.nandify()
+        else:
+            self.opStack.content = []
+            self.outQueue.content = []
+
+
+parsethis = Parser("a -> ~b + c", 1)
+parsethis.parse()
 print parsethis.outQueue
+print parsethis.stack
 
-parsethis = Parser("aa3+b3i(*c4*(d+e)", 1)
-parsethis.infixToPostfix()

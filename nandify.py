@@ -1,3 +1,15 @@
+""" NandProject Written by Park Jongmin 
+    project #3 from CS492 "Nand to Tetris"
+
+    Usages: python nandify.py (inputfile)       [Try this ->] python nandify.py testInput.txt
+     - inputfile is optional
+     - It will get inputs from stdin if you miss giving inputfile as an argument
+     - It will make some .hdl files corresponding to your inputs in the same directory with the code("nandify.py")
+
+    Developed with Python 2.7.13 on Window 10 and Ubuntu 17.??
+"""
+import fileinput
+
 class Stack:
     def __init__(self):
         self.content = []
@@ -24,35 +36,18 @@ class Queue:
     def __str__(self):
         return str(self.content)
 
-""" Simple Binary Tree """
-class Tree:
-    def __init__(self, data=None):
-        self.data = data
-        self.left = None
-        self.right = None
-
-    def addLeft(self, data):
-        leftChild = Tree(data)
-        self.left = leftChild
-    
-    def addRight(self, data):
-        rightChild = Tree(data)
-        self.right = rightChild
-
-# Not implemented yet
-    def traverse(self):
-        return 0
-
-""" (A line of string) => (Simple Binary Tree) 
-    Convert given string to a simple binary tree """
+""" (a line of string) => (hdl file) 
+    Convert given string to a hdl file """
 class Parser:
     alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
     number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     op = ['~', '+', '*', '->']
     def __init__(self, string, lineNo):
         self.fileName = string.replace(" ", "").split("=")[0]
-        self.formula = string.replace(" ", "").split("=")[1]
-        self.tree = Tree()
+        try:
+            self.formula = string.replace(" ", "").split("=")[1]
+        except:
+            self.formula = ""
         self.lineNo = lineNo
         self.outQueue = Queue()
         self.opStack = Stack()
@@ -62,6 +57,9 @@ class Parser:
         print("Syntax Error at line " + str(self.lineNo) + ": Please check around your symbol '" + targetSymbol + "'")
 
     def infixToPostfix(self):
+        if self.formula == "":
+            print("Systax Error at line " + str(self.lineNo) + ": Your input is not in form of 'Name = formula'")
+            return False
         symbol = "" # This is for tokenizing symbols
         implying = False
         for letter in self.formula:
@@ -130,7 +128,7 @@ class Parser:
                 self.opStack.pop()
 
             else:
-                print("Syntax Error at line " + str(self.lineNo) + ": Invalid character is found")
+                print("Syntax Error at line " + str(self.lineNo) + ": Invalid character '" + letter + "'' is found")
 
         if symbol != "":
             self.outQueue.enqueue(symbol)
@@ -142,11 +140,16 @@ class Parser:
             return False
         return True
 
+    # '#' stands for "NAND"
     def nandify(self):
         self.stack.content = []
         for token in self.outQueue.content:
             if token == '~':
-                operand2 = self.stack.pop()
+                try:
+                    operand2 = self.stack.pop()
+                except:
+                    print("Systax Error at line " + str(self.lineNo) + ": Operator without enough operand")
+                    return False
                 if operand2[-1] == '~':
                     operand2.pop(-1)
                 else:
@@ -154,15 +157,23 @@ class Parser:
                 self.stack.push(operand2)
 
             elif token == '*':
-                operand2 = self.stack.pop()
-                operand1 = self.stack.pop()
+                try:
+                    operand2 = self.stack.pop()
+                    operand1 = self.stack.pop()
+                except:
+                    print("Systax Error at line " + str(self.lineNo) + ": Operator without enough operand")
+                    return False
                 operand2.append('#')
                 operand2.append('~')
                 self.stack.push(operand1 + operand2)
 
             elif token == '+':
-                operand2 = self.stack.pop()
-                operand1 = self.stack.pop()
+                try:
+                    operand2 = self.stack.pop()
+                    operand1 = self.stack.pop()
+                except:
+                    print("Systax Error at line " + str(self.lineNo) + ": Operator without enough operand")
+                    return False
                 if operand1[-1] == '~':
                     operand1.pop(-1)
                 else:
@@ -175,8 +186,12 @@ class Parser:
                 self.stack.push(operand1 + operand2)
 
             elif token == '->':
-                operand2 = self.stack.pop()
-                operand1 = self.stack.pop()
+                try:
+                    operand2 = self.stack.pop()
+                    operand1 = self.stack.pop()
+                except:
+                    print("Systax Error at line " + str(self.lineNo) + ": Operator without enough operand")
+                    return False
                 if operand2[-1] == '~':
                     operand2.pop(-1)
                 else:
@@ -188,11 +203,17 @@ class Parser:
                 temp = []
                 temp.append(token)
                 self.stack.push(temp)
+        if len(self.stack.content) > 1:
+            print("Systax Error at line " + str(self.lineNo) + ": Operand without operator")
+            return False
         self.stack.content = self.stack.content[0]
+        if len(self.stack.content) == 1:
+            print("Systax Error at line " + str(self.lineNo) + ": At least one operator is needed")
+            return False
         return True
 
     def writeHDL(self):
-        inputs = set(self.stack.content) - set(Parser.op)
+        inputs = set(self.stack.content) - set(['~', '#'])
         f = open(self.fileName + ".hdl", 'w')
         f.write("// This file is created by NandProject\n// File name: " + self.fileName + ".hdl\n\n")
         
@@ -204,28 +225,46 @@ class Parser:
         f.write(head)
         
         pinNo = 0
-        def newPin():
-            pinNo += 1
-            return "pin" + str(pinNo - 1)
-
         body = ""
         
-        def writeNand(a, b, out):
-            body += "\t\tNand(a=" + a + ", b=" + b + ", out=" + out + ");\n"
-        
-        def writeNot(_in, out):
-            body += "\t\tNand(a=" + _in + ", b=" + _in + ", out=" + out + ");\n"
-        
-        # -----------------------Write Here!---------------------------
+        rStack = []
+        for token in self.stack.content[:-1]:
+            if token == '#':
+                b = rStack.pop(-1)
+                a = rStack.pop(-1)
+                out = "pin" + str(pinNo)
+                pinNo += 1
+                body += "\t\tNand(a=" + a + ", b=" + b + ", out=" + out + ");\n"
+                rStack.append(out)
 
+            elif token == '~':
+                _in = rStack.pop(-1)
+                out = "pin" + str(pinNo)
+                pinNo += 1 
+                body += "\t\tNand(a=" + _in + ", b=" + _in + ", out=" + out + ");\n"
+                rStack.append(out)
 
+            else:
+                rStack.append(token)
+        
+        if self.stack.content[-1] == '#':
+            b = rStack.pop(-1)
+            a = rStack.pop(-1)
+            body += "\t\tNand(a=" + a + ", b=" + b + ", out=out);\n"
+
+        elif self.stack.content[-1] == '~':
+            _in = rStack.pop(-1)
+            body += "\t\tNand(a=" + _in + ", b=" + _in + ", out=out);\n"
+        
         f.write(body + "}")
         f.close()
 
 
     def parse(self):
         if self.infixToPostfix():
+            print self.outQueue.content
             if self.nandify():
+                print self.stack.content
                 self.writeHDL()
             else:
                 self.stack.content = []
@@ -233,9 +272,10 @@ class Parser:
             self.opStack.content = []
             self.outQueue.content = []
 
-    
-parsethis = Parser("test1 = a -> ~b + c", 1)
-parsethis.parse()
-print parsethis.outQueue
-print parsethis.stack
 
+if __name__ == "__main__":
+    lineNo = 1
+    for line in fileinput.input():
+        parsethis = Parser(line.strip("\n"), lineNo)
+        lineNo += 1
+        parsethis.parse()

@@ -1,0 +1,8 @@
+test_Not = ~in
+test_And = a * b
+test_Error1 = a * * b
+test_Or = a + b
+test_Error2 = a
+test_Xor = ~a * b + a * ~b
+test_Nand1 = ~(a * b)
+test_Nand2 = ~x + ~y

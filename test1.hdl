@@ -1,0 +1,9 @@
+// This file is created by NandProject
+// File name: test1.hdl
+
+CHIP test1 {
+	IN a, c, b, #;
+	OUT out;
+
+	PARTS:
+}

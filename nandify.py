@@ -50,7 +50,8 @@ class Parser:
     number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     op = ['~', '+', '*', '->']
     def __init__(self, string, lineNo):
-        self.string = string.replace(" ", "")
+        self.fileName = string.replace(" ", "").split("=")[0]
+        self.formula = string.replace(" ", "").split("=")[1]
         self.tree = Tree()
         self.lineNo = lineNo
         self.outQueue = Queue()
@@ -63,7 +64,7 @@ class Parser:
     def infixToPostfix(self):
         symbol = "" # This is for tokenizing symbols
         implying = False
-        for letter in self.string:
+        for letter in self.formula:
             if letter in Parser.number:
                 if symbol == "":
                     self.syntaxError(letter)
@@ -187,16 +188,53 @@ class Parser:
                 temp = []
                 temp.append(token)
                 self.stack.push(temp)
+        self.stack.content = self.stack.content[0]
+        return True
+
+    def writeHDL(self):
+        inputs = set(self.stack.content) - set(Parser.op)
+        f = open(self.fileName + ".hdl", 'w')
+        f.write("// This file is created by NandProject\n// File name: " + self.fileName + ".hdl\n\n")
+        
+        head = "CHIP " + self.fileName + " {\n\tIN "
+        for _input in inputs:
+            head += _input + ", "
+        head = head[:-2]
+        head += ";\n\tOUT out;\n\n\tPARTS:\n"
+        f.write(head)
+        
+        pinNo = 0
+        def newPin():
+            pinNo += 1
+            return "pin" + str(pinNo - 1)
+
+        body = ""
+        
+        def writeNand(a, b, out):
+            body += "\t\tNand(a=" + a + ", b=" + b + ", out=" + out + ");\n"
+        
+        def writeNot(_in, out):
+            body += "\t\tNand(a=" + _in + ", b=" + _in + ", out=" + out + ");\n"
+        
+        # -----------------------Write Here!---------------------------
+
+
+        f.write(body + "}")
+        f.close()
+
 
     def parse(self):
         if self.infixToPostfix():
-            self.nandify()
+            if self.nandify():
+                self.writeHDL()
+            else:
+                self.stack.content = []
         else:
             self.opStack.content = []
             self.outQueue.content = []
 
-
-parsethis = Parser("a -> ~b + c", 1)
+    
+parsethis = Parser("test1 = a -> ~b + c", 1)
 parsethis.parse()
 print parsethis.outQueue
 print parsethis.stack

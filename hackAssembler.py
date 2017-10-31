@@ -55,6 +55,9 @@ class assembler:
             if line == "":  # Skip empty lines
                 continue
 
+            if line[0] == "(" and line[-1] == ")":  # Skip labels
+                continue
+
             instruction = ""    # initialize next instruction to write
             # A-instruction
             if line[0] == "@":
@@ -82,10 +85,27 @@ class assembler:
 
             # C-instruction
             else:
-                m = re.search("((?<dest>.*)=)?(?<comp>.*)(;(?<jump>.*))?", line)
-                dest = m.group('dest')
-                comp = m.group('comp')
-                jump = m.group('jump')
+                m = re.search("(?P<dest>.*)=(?P<comp>.*);(?P<jump>.*)", line)
+                if not m:
+                    m = re.search("(?P<dest>.*)=(?P<comp>.*)", line)
+                if not m:
+                    m = re.search("(?P<comp>.*);(?P<jump>.*)", line)
+                if not m:
+                    print("Syntax error : in " + line)
+                try:
+                    dest = m.group('dest')
+                except:
+                    dest = None
+
+                try:
+                    comp = m.group('comp')
+                except:
+                    comp = None
+                
+                try:
+                    jump = m.group('jump')
+                except:
+                    jump = None
 
                 # dest bits
                 if not dest:
@@ -105,7 +125,7 @@ class assembler:
                 elif dest == "AMD":
                     destBits = "111"
                 else:
-                    print("Syntax error: invalid dest")
+                    print("Syntax error: invalid dest in" + line)
                     continue
 
                 # comp bits
@@ -166,7 +186,7 @@ class assembler:
                 elif comp == "D|M":
                     compBits = "1010101"
                 else:
-                    print("Syntax error: invalid comp")
+                    print("Syntax error: invalid comp in" + line)
                     continue
 
                 # jump bits
@@ -187,7 +207,7 @@ class assembler:
                 elif jump == "JMP":
                     jumpBits = "111"
                 else:
-                    print("Syntax error: invalid jump")
+                    print("Syntax error: invalid jump in" + line)
                     continue
 
                 instruction = "111" + compBits + destBits + jumpBits

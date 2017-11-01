@@ -1,4 +1,5 @@
 import re
+import sys
 
 class assembler:
     def __init__(self, asm, hack):
@@ -33,7 +34,7 @@ class assembler:
             if m:
                 label = m.group()[1:-1]
                 if label in self.symbolTable.keys():
-                    print("ERROR : invalid or duplicated label detected")
+                    print("Syntax error: invalid or duplicated label detected")
                     return -1
                 else:
                     self.symbolTable[label] = newvarPointer
@@ -64,24 +65,21 @@ class assembler:
                 try:
                     instruction = bin(int(line[1:]))[2:]
                     if len(instruction) > 15:
-                        print("A-instruction only provide 15 bit integers")
+                        print("Syntax error: A-instruction only provide 15 bit integers")
                         continue
                     else:
                         while len(instruction) < 16:
                             instruction = "0" + instruction
-                        print(instruction)
                 except:
                     symbol = line[1:]
                     if symbol not in self.symbolTable.keys():
                         self.symbolTable[symbol] = newvarPointer
-                        print(symbol + " <= " + str(newvarPointer))
+                        # print(symbol + " <= " + str(newvarPointer))
                         newvarPointer += 1
 
                     instruction = bin(self.symbolTable[symbol])[2:]
                     while len(instruction) < 16:
                         instruction = "0" + instruction
-
-                    print(instruction)
 
             # C-instruction
             else:
@@ -221,7 +219,7 @@ class assembler:
 
 
 if __name__ == "__main__":
-    test = assembler("test")
-    test.assemble()
+    target = assembler(sys.argv[1].split(".")[0])
+    target.assemble()
 
 

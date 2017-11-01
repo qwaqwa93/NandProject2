@@ -219,7 +219,10 @@ class assembler:
 
 
 if __name__ == "__main__":
-    target = assembler(sys.argv[1].split(".")[0])
-    target.assemble()
+    if sys.argv[1].split(".")[1] != "asm":
+        print("Your argument should be an .asm file")
+    else:
+        target = assembler(sys.argv[1].split(".")[0])
+        target.assemble()
 
 
